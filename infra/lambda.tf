@@ -36,4 +36,10 @@ resource "aws_lambda_function" "lambda" {
     subnet_ids         = [for id in data.aws_subnets.private_subnets.ids : id]
     security_group_ids = [aws_security_group.lambda_sg.id]
   }
+
+  environment {
+    variables = {
+      NLB_BASE_URL = "http://a0f1930b83c3a42fba244bbbf1fec19d-183ddb5ee5b3c08f.elb.us-east-1.amazonaws.com:3001"
+    }
+  }
 }

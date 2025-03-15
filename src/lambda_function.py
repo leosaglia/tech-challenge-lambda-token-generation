@@ -24,7 +24,7 @@ def lambda_handler(event, context):
         }
 
 def generate_token_for_customer(document_id: str | None):
-    nlb_url = os.environ.get("NLB_BASE_URL") # "http://a0f1930b83c3a42fba244bbbf1fec19d-183ddb5ee5b3c08f.elb.us-east-1.amazonaws.com:3001"
+    nlb_url = os.environ.get("NLB_BASE_URL")
 
     if not document_id:
         token = generate_jwt_token(False)
