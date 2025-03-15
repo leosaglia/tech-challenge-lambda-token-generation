@@ -1,3 +1,18 @@
+resource "aws_security_group" "lambda_sg" {
+  name        = "lambda-token-generation-sg"
+  description = "Security group for lambda function"
+  vpc_id      = data.aws_vpc.selected_vpc.id
+
+  ingress {}
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 data "archive_file" "lambda_package" {
   type        = "zip"
   source_dir  = "${path.module}/../src"
@@ -14,6 +29,6 @@ resource "aws_lambda_function" "lambda" {
   
   vpc_config {
     subnet_ids         = [for id in data.aws_subnets.private_subnets.ids : id]
-    security_group_ids = ["sg-05efd16d50f3f107e"]
+    security_group_ids = [aws_security_group.lambda_sg.id]
   }
 }
