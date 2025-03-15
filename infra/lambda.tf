@@ -39,7 +39,7 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = {
-      NLB_BASE_URL = "http://a0f1930b83c3a42fba244bbbf1fec19d-183ddb5ee5b3c08f.elb.us-east-1.amazonaws.com:3001"
+      NLB_BASE_URL = "http://af1d21e4bcb6e4e0098954d613411cda-e935e40cf52b0a60.elb.us-east-1.amazonaws.com:3001"
     }
   }
 }

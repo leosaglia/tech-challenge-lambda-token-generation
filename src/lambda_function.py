@@ -7,14 +7,14 @@ import jwt
 
 def lambda_handler(event, context):
     try:
-        event_body = json.loads(event.get("body"))
-
-        if not event_body:
+        try :
+            event_body = json.loads(event.get("body"))
+        except:
             return {
                 "statusCode": 400,
                 "body": json.dumps({"error": "Invalid request body"})
-            }
-        
+            }            
+
         return generate_token_for_customer(event_body.get("document_id", None))
             
     except requests.exceptions.RequestException as e:
@@ -33,12 +33,16 @@ def generate_token_for_customer(document_id: str | None):
 
     # Chamada para o NLB para buscar o cliente - API publicada no cluster EKS
     response = requests.get(f"{nlb_url}/customers/{document_id}")
-    response.raise_for_status()
 
     if response.status_code == 404:
         return {
             "statusCode": 404,
             "body": json.dumps({"error": "Client not found"})
+        }    
+    elif not response.ok:
+        return {
+            "statusCode": response.status_code,
+            "body": json.dumps({"error": "Service error"})
         }
 
     client_info = response.json()
