@@ -4,31 +4,18 @@ import requests
 import boto3
 import datetime
 import jwt
-from user_type import UserType
 
 def lambda_handler(event, context):
     try:
         event_body = json.loads(event.get("body"))
-        user_type = event_body.get("user_type") # "customer" or "employee"
 
-        if not validate_event_body(event_body):
+        if not event_body:
             return {
                 "statusCode": 400,
                 "body": json.dumps({"error": "Invalid request body"})
             }
-
-        user_type = UserType(user_type)
-
-        match user_type:
-            case UserType.CUSTOMER:
-                return generate_token_for_customer(event_body.get("document_id", None))
-            case UserType.EMPLOYEE:
-                return generate_token_for_employee(event_body.get("employee_id", None))
-            case _:
-                return {
-                    "statusCode": 400,
-                    "body": json.dumps({"error": "Invalid user type"})
-                }
+        
+        return generate_token_for_customer(event_body.get("document_id", None))
             
     except requests.exceptions.RequestException as e:
         return {
@@ -36,37 +23,11 @@ def lambda_handler(event, context):
             "body": json.dumps({"error": str(e)})
         }
 
-def validate_event_body(event_body):
-    if not event_body:
-        return False
-
-    if not event_body.get("user_type"):
-        return False
-
-    if event_body.get("user_type") != "customer" and event_body.get("user_type") != "employee":
-        return False
-
-    return True
-
-def get_jwt_secret():
-    secret_name = "jwt_secret"
-    region_name = "us-east-1"
-
-    session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager',
-        region_name=region_name
-    )
-
-    secret = client.get_secret_value(SecretId=secret_name)
-    secret_string = json.loads(secret['SecretString'])
-    return secret_string['key']
-
 def generate_token_for_customer(document_id: str | None):
     nlb_url = os.environ.get("NLB_BASE_URL") # "http://a0f1930b83c3a42fba244bbbf1fec19d-183ddb5ee5b3c08f.elb.us-east-1.amazonaws.com:3001"
 
     if not document_id:
-        token = generate_jwt_token(False, UserType.CUSTOMER)
+        token = generate_jwt_token(False)
 
         return generate_success_response(False, token)
 
@@ -87,35 +48,11 @@ def generate_token_for_customer(document_id: str | None):
         "identification_number": client_info.get("document_id")
     }
 
-    token = generate_jwt_token(True, UserType.CUSTOMER, userInfo)
+    token = generate_jwt_token(True, userInfo)
 
     return generate_success_response(True, token)
 
-def generate_token_for_employee(employee_id: str | None):
-    if not employee_id:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "Employee ID not provided"})
-        }
-    
-    valid_employee_ids = ["123", "456", "789"]
-
-    if employee_id not in valid_employee_ids:
-        return {
-            "statusCode": 404,
-            "body": json.dumps({"error": "Employee not found"})
-        }
-    
-    userInfo = {
-        "name": "Fake Employee name",
-        "identification_number": employee_id
-    }
-    
-    token = generate_jwt_token(True, UserType.EMPLOYEE, userInfo)
-
-    return generate_success_response(True, token)
-
-def generate_jwt_token(identified_user: bool, user_type: UserType, userInfo = None):
+def generate_jwt_token(identified_user: bool, userInfo = None):
     secret_key = get_jwt_secret()
 
     if userInfo is not None:
@@ -123,19 +60,33 @@ def generate_jwt_token(identified_user: bool, user_type: UserType, userInfo = No
             "name": userInfo.get("name"),
             "identification_number": userInfo.get("identification_number"),
             "identified_user": identified_user,
-            "user_type": user_type.value,
+            "user_type": 'customer',
             "iat": datetime.datetime.now(datetime.timezone.utc),
             "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=60)
         }
     else:
         payload = {
             "identified_user": identified_user,
-            "user_type": user_type.value,
+            "user_type": 'customer',
             "iat": datetime.datetime.now(datetime.timezone.utc),
             "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=60)
         }
 
     return jwt.encode(payload, secret_key, algorithm="HS256")
+
+def get_jwt_secret():
+    secret_name = "jwt_secret"
+    region_name = "us-east-1"
+
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    secret = client.get_secret_value(SecretId=secret_name)
+    secret_string = json.loads(secret['SecretString'])
+    return secret_string['key']
 
 def generate_success_response(identified_user: bool, token: str):
     return {
