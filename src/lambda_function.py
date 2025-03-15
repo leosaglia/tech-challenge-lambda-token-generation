@@ -7,15 +7,21 @@ import jwt
 
 def lambda_handler(event, context):
     try:
+        if event.get("body", None) is None:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "Invalid request body"})
+            }
+            
         try :
-            event_body = json.loads(event.get("body"))
+            event_body = json.loads(event.get("body", None))
         except:
             return {
                 "statusCode": 400,
                 "body": json.dumps({"error": "Invalid request body"})
             }            
 
-        return generate_token_for_customer(event_body.get("document_id", None))
+        return generate_token_for_customer(event_body.get("document", None))
             
     except requests.exceptions.RequestException as e:
         return {
@@ -26,7 +32,7 @@ def lambda_handler(event, context):
 def generate_token_for_customer(document_id: str | None):
     nlb_url = os.environ.get("NLB_BASE_URL")
 
-    if not document_id:
+    if not document_id or document_id == "":
         token = generate_jwt_token(False)
 
         return generate_success_response(False, token)
