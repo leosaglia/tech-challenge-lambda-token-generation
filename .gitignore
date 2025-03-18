@@ -1,3 +1,6 @@
 package
 .venv
 .env
+terraform*
+.terraform*
+*.zip
