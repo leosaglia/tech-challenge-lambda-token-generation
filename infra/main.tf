@@ -13,7 +13,7 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "state-terraform-tech"
+    bucket = "state-terraform-tech-v2"
     key = "tech-challenge-lambda-token-generation/terraform.tfstate"
     region = "us-east-1"
     encrypt = true
